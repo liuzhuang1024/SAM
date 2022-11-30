@@ -1,0 +1,93 @@
+# 实验名称
+experiment: "v1_l2-loss" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_ori_train_with_gpus1_bs8_lr1" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_gpus1_bs8_lr1" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_gpus1_bs8_lr1_ddp" # "ori_CAN_in_full_crohme"
+
+# 随机种子
+seed: 20211024
+
+# 训练参数
+epochs: 200
+batch_size: 8 # 8
+workers: 0 # 0
+train_parts: 1
+valid_parts: 1
+valid_start: 20 # 1000000000
+save_start: 0 # 220
+
+optimizer: Adadelta
+lr: 1 # 1
+lr_decay: cosine
+step_ratio: 10
+step_decay: 5
+eps: 1e-6
+weight_decay: 1e-4
+beta: 0.9
+
+output_counting_feature: False
+output_channel_attn_feature: False
+counting_loss_ratio: 1
+
+dropout: True
+dropout_ratio: 0.5
+relu: True
+gradient: 100
+gradient_clip: True
+use_label_mask: False
+use_loc_mask: False
+
+# 训练数据
+train_image_path: '/liuzhuang7/CROHME/train_images.pkl'
+train_label_path: '/liuzhuang7/CROHME/train_labels.txt'
+
+eval_image_path: '/liuzhuang7/CROHME/14_test_images.pkl'
+eval_label_path: '/liuzhuang7/CROHME/14_test_labels.txt'
+
+16_eval_image_path: '/liuzhuang7/CROHME/16_test_images.pkl'
+16_eval_label_path: '/liuzhuang7/CROHME/16_test_labels.txt'
+19_eval_image_path: '/liuzhuang7/CROHME/19_test_images.pkl'
+19_eval_label_path: '/liuzhuang7/CROHME/19_test_labels.txt'
+
+matrix_path: '/liuzhuang7/CROHME/symbol_statistic_v1.pkl'
+
+word_path: '/liuzhuang7/CROHME/words_dict.txt'
+
+data_process:
+  reverse_color: False
+  equal_range: False
+
+# collate_fn
+collate_fn: collate_fn
+
+densenet:
+  ratio: 16
+  growthRate: 24
+  reduction: 0.5
+  bottleneck: True
+  use_dropout: True
+
+encoder:
+  input_channel: 1
+  out_channel: 684
+
+decoder:
+  net: Decoder_v1
+  cell: 'GRU'
+  input_size: 256
+  hidden_size: 256
+  out_size: 256
+
+attention:
+  attention_dim: 512
+  word_conv_kernel: 1
+
+sim_loss:
+  type: l2
+
+whiten_type: None
+max_step: 256
+
+optimizer_save: False
+finetune: False
+checkpoint_dir: 'checkpoints'
+checkpoint: ""
+log_dir: 'logs'
+
