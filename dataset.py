@@ -2,6 +2,7 @@ import torch
 import time
 import pickle as pkl
 from torch.utils.data import DataLoader, Dataset, RandomSampler, DistributedSampler
+from counting_utils import gen_counting_label
 
 
 class HMERDataset(Dataset):
@@ -33,6 +34,10 @@ class HMERDataset(Dataset):
         self.reverse_color = self.params['data_process']['reverse_color'] if 'data_process' in params else False
         self.equal_range = self.params['data_process']['equal_range'] if 'data_process' in params else False
 
+        with open(self.params['matrix_path'], 'rb') as f:
+            matrix = pkl.load(f)
+        self.matrix = torch.Tensor(matrix)
+        
     def __len__(self):
         # assert len(self.images) == len(self.labels)
         return len(self.labels)
@@ -55,7 +60,28 @@ class HMERDataset(Dataset):
         words = self.words.encode(labels) + [0]
         words = torch.LongTensor(words)
         return image, words
-
+    
+    def gen_matrix(self, labels):
+        (B, L), device = labels.shape, labels.device
+        matrix = []
+        for i in range(B):
+            _L = []
+            label = labels[i]
+            for x in range(L):
+                _T = []
+                for y in range(L):
+                    if x == y:
+                        _T.append(1.)
+                    else:
+                        if label[x] == label[y] or label[x] == 0 or label[y] == 0:
+                            _T.append(0.)
+                        else:
+                            _T.append(self.matrix[label[x], label[y]])
+                _L.append(_T)
+            matrix.append(_L)
+        matrix = torch.tensor(matrix).to(device)
+        return matrix.detach()
+    
     def collate_fn(self, batch_images):
         max_width, max_height, max_length = 0, 0, 0
         batch, channel = len(batch_images), batch_images[0][0].shape[0]
@@ -80,7 +106,9 @@ class HMERDataset(Dataset):
             l = proper_items[i][1].shape[0]
             labels[i][:l] = proper_items[i][1]
             labels_masks[i][:l] = 1
-        return images, image_masks, labels, labels_masks
+        matrix = self.gen_matrix(labels)
+        counting_labels = gen_counting_label(labels, self.params['counting_decoder']['out_channel'], True)
+        return images, image_masks, labels, labels_masks, matrix, counting_labels
 
 
 def get_crohme_dataset(params):

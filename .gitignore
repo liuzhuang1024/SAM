@@ -5,4 +5,8 @@ logs
 datasets
 
 .DS_Store
-*.log
+.vscode
+logs_v2
+heatmap
+184_checkpoints
+.ipynb_checkpoints

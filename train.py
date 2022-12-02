@@ -55,7 +55,8 @@ optimizer = getattr(torch.optim, params['optimizer'])(model.parameters(), lr=flo
 if params['finetune']:
     print('加载预训练模型权重')
     print(f'预训练权重路径: {params["checkpoint"]}')
-    load_checkpoint(model, optimizer, params['checkpoint'])
+    if params["checkpoint"]:
+        load_checkpoint(model, optimizer, params['checkpoint'])
 
 if not args.check:
     if not os.path.exists(os.path.join(params['checkpoint_dir'], model.name)):
@@ -67,12 +68,12 @@ if not args.check:
 min_score = 0
 min_step = 0
 rate_2014, rate_2016, rate_2019 = 0.55, 0.54, 0.55
-rate_2014, rate_2016, rate_2019 = 0.50, 0.50, 0.50
+rate_2014, rate_2016, rate_2019 = 0.54, 0.54, 0.54
 # init_epoch = 0 if not params['finetune'] else int(params['checkpoint'].split('_')[-1].split('.')[0])
 
 if args.val:
     epoch = 1
-    model.load_state_dict(torch.load("checkpoints/v1_l1-loss_2022-11-28-23-38_decoder-Decoder_v1/2016_v1_l1-loss_2022-11-28-23-38_decoder-Decoder_v1_WordRate-0.9057_ExpRate-0.5405_182.pth", map_location="cpu")['model'])
+    # model.load_state_dict(torch.load("checkpoints/v1_l2-loss_2022-11-30-09-57_decoder-Decoder_v1/2016_v1_l2-loss_2022-11-30-09-57_decoder-Decoder_v1_WordRate-0.9094_ExpRate-0.5562_190.pth", map_location="cpu")['model'])
     print()
     eval_loss, eval_word_score, eval_expRate = eval(params, model, epoch, eval_loader_14)
     print(f'2014 Epoch: {epoch + 1}  loss: {eval_loss:.4f}  word score: {eval_word_score:.4f}  ExpRate: {eval_expRate:.4f}')

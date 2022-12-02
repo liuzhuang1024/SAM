@@ -1,5 +1,17 @@
 # 实验名称
-experiment: "v1_l2-loss" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_ori_train_with_gpus1_bs8_lr1" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_gpus1_bs8_lr1" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_gpus1_bs8_lr1_ddp" # "ori_CAN_in_full_crohme"
+experiment: "can-l2-context-word" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_ori_train_with_gpus1_bs8_lr1" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_gpus1_bs8_lr1" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_gpus1_bs8_lr1_ddp" # "ori_CAN_in_full_crohme"
+
+sim_loss:
+  type: l2
+  use_flag: True
+context_loss: False
+word_state_loss: False
+
+
+counting_decoder:
+  use_flag: True
+  in_channel: 684
+  out_channel: 111
 
 # 随机种子
 seed: 20211024
@@ -7,10 +19,10 @@ seed: 20211024
 # 训练参数
 epochs: 200
 batch_size: 8 # 8
-workers: 0 # 0
+workers: 5 # 0
 train_parts: 1
 valid_parts: 1
-valid_start: 20 # 1000000000
+valid_start: 100 # 1000000000
 save_start: 0 # 220
 
 optimizer: Adadelta
@@ -22,9 +34,9 @@ eps: 1e-6
 weight_decay: 1e-4
 beta: 0.9
 
-output_counting_feature: False
-output_channel_attn_feature: False
-counting_loss_ratio: 1
+# output_counting_feature: False
+# output_channel_attn_feature: False
+# counting_loss_ratio: 1
 
 dropout: True
 dropout_ratio: 0.5
@@ -69,7 +81,7 @@ encoder:
   out_channel: 684
 
 decoder:
-  net: Decoder_v1
+  net: Decoder_v3
   cell: 'GRU'
   input_size: 256
   hidden_size: 256
@@ -79,15 +91,13 @@ attention:
   attention_dim: 512
   word_conv_kernel: 1
 
-sim_loss:
-  type: l2
 
 whiten_type: None
 max_step: 256
 
 optimizer_save: False
-finetune: False
+finetune: True
 checkpoint_dir: 'checkpoints'
 checkpoint: ""
-log_dir: 'logs'
+log_dir: 'logs_v2'
 

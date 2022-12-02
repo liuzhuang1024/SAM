@@ -1,26 +1,45 @@
 import torch
 from tqdm import tqdm
 from utils import update_lr, Meter, cal_score
+from torch import nn
+from copy import deepcopy
 
+shadow_model = {}
 
-def train(params, model, optimizer, epoch, train_loader, writer=None):
+def finetune_part(model: nn.Module, name):
+    for k, v in model.named_parameters():
+        if name in k:
+            v.requires_grad = True
+        else:
+            v.requires_grad = False
+            if k in shadow_model:
+                 assert torch.equal(shadow_model[k], v), "find params change!"
+            else:
+                shadow_model[k] = deepcopy(v)
+    return 
+    
+def train(params, model, optimizer:torch.optim.Optimizer, epoch, train_loader, writer=None):
     model.train()
     device = params['device']
     loss_meter = Meter()
     word_right, exp_right, length, cal_num = 0, 0, 0, 0
 
+    if params['finetune']:
+        finetune_part(model, 'counting')
+        
     with tqdm(train_loader, total=len(train_loader)//params['train_parts']) as pbar:
-        for batch_idx, (images, image_masks, labels, label_masks) in enumerate(pbar):
-            images, image_masks, labels, label_masks = images.to(device), image_masks.to(
-                device), labels.to(device), label_masks.to(device)
+        for batch_idx, (images, image_masks, labels, label_masks, matrix, counting_labels) in enumerate(pbar):
+            images, image_masks, labels, label_masks, matrix, counting_labels = \
+                images.to(device, non_blocking=True), image_masks.to(device, non_blocking=True), \
+                labels.to(device, non_blocking=True), label_masks.to(device, non_blocking=True), \
+                matrix.to(device, non_blocking=True), counting_labels.to(device, non_blocking=True)
             batch, time = labels.shape[:2]
             if not 'lr_decay' in params or params['lr_decay'] == 'cosine':
                 update_lr(optimizer, epoch, batch_idx, len(train_loader), params['epochs'], params['lr'])
             optimizer.zero_grad()
-            probs, loss = model(images, image_masks, labels, label_masks)
-            word_loss, sim_loss = loss
-            loss = word_loss + sim_loss
-
+            probs, loss = model(images, image_masks, labels, label_masks, matrix=matrix, counting_labels=counting_labels)
+            word_loss, sim_loss, context_loss, word_state_loss, counting_loss = loss
+            loss = word_loss + sim_loss + context_loss + word_state_loss + counting_loss
             loss.backward()
 
             if params['gradient_clip']:
@@ -33,17 +52,24 @@ def train(params, model, optimizer, epoch, train_loader, writer=None):
             exp_right = exp_right + ExpRate * batch
             length = length + time
             cal_num = cal_num + batch
-
+            
+            if isinstance(sim_loss, torch.Tensor):
+                sim_loss = sim_loss.item()
+                
             if writer:
                 current_step = epoch * len(train_loader) // params['train_parts'] + batch_idx + 1
                 writer.add_scalar('train/loss', loss.item(), current_step)
+                writer.add_scalar('train/sim', sim_loss, current_step)
+                writer.add_scalar('train/counting', counting_loss, current_step)
+                writer.add_scalar('train/context', context_loss, current_step)
+                writer.add_scalar('train/word', word_state_loss, current_step)
                 writer.add_scalar('train/WordRate', wordRate, current_step)
                 writer.add_scalar('train/ExpRate', ExpRate, current_step)
                 writer.add_scalar('train/lr', optimizer.param_groups[0]['lr'], current_step)
-
-            string = f'{epoch + 1} word_loss:{word_loss.item():.3f}  sim_loss: {sim_loss.item():.3f} '
+        
+            string = f'{epoch + 1} word_loss:{word_loss.item():.3f}  sim_loss: {sim_loss:.3f} '
             string += f'WRate:{word_right / length:.3f} ERate:{exp_right / cal_num:.3f}'
-
+ 
             pbar.set_description(string)
             if batch_idx >= len(train_loader) // params['train_parts']:
                 break
@@ -62,13 +88,13 @@ def eval(params, model, epoch, eval_loader, writer=None):
     word_right, exp_right, length, cal_num = 0, 0, 0, 0
 
     with tqdm(eval_loader, total=len(eval_loader)//params['valid_parts']) as pbar, torch.no_grad():
-        for batch_idx, (images, image_masks, labels, label_masks) in enumerate(pbar):
-            images, image_masks, labels, label_masks = images.to(device), image_masks.to(
-                device), labels.to(device), label_masks.to(device)
+        for batch_idx, (images, image_masks, labels, label_masks, _, counting_labels) in enumerate(pbar):
+            images, image_masks, labels, label_masks, counting_labels = images.to(device), image_masks.to(
+                device), labels.to(device), label_masks.to(device), counting_labels.to(device)
             batch, time = labels.shape[:2]
-            probs, loss = model(images, image_masks, labels, label_masks, is_train=False)
+            probs, loss = model(images, image_masks, labels, label_masks, counting_labels=counting_labels, is_train=False)
 
-            word_loss, sim_loss = loss
+            word_loss, sim_loss, _, _, counting_loss = loss
             loss = word_loss + sim_loss
             loss_meter.add(loss.item())
 
@@ -78,6 +104,9 @@ def eval(params, model, epoch, eval_loader, writer=None):
             length = length + time
             cal_num = cal_num + batch
 
+            if isinstance(sim_loss, torch.Tensor):
+                sim_loss = sim_loss.item()
+                
             if writer:
                 current_step = epoch * len(eval_loader)//params['valid_parts'] + batch_idx + 1
                 writer.add_scalar('eval/word_loss', word_loss.item(), current_step)
@@ -85,7 +114,7 @@ def eval(params, model, epoch, eval_loader, writer=None):
                 writer.add_scalar('eval/WordRate', wordRate, current_step)
                 writer.add_scalar('eval/ExpRate', ExpRate, current_step)
 
-            pbar.set_description(f'{epoch+1} word_loss:{word_loss.item():.4f} sim_loss:{sim_loss.item():.4f}'
+            pbar.set_description(f'{epoch+1} word_loss:{word_loss.item():.4f} sim_loss:{sim_loss:.4f}'
                                  f' WRate:{word_right / length:.4f} ERate:{exp_right / cal_num:.4f}')
             if batch_idx >= len(eval_loader) // params['valid_parts']:
                 break
