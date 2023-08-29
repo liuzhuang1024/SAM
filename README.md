@@ -1,6 +1,7 @@
 # SAM
-[Semantic Graph Representation Learning for Handwritten Mathematical Expression Recognition (ICDAR 2023)](https://arxiv.org/abs/2308.10493)
-This is the official pytorch implementation of [SAM](https://arxiv.org/abs/2308.10493)[ICDAR' 2023]. 
+## [Semantic Graph Representation Learning for Handwritten Mathematical Expression Recognition (ICDAR 2023)](https://arxiv.org/abs/2308.10493)
+
+This is the official pytorch implementation of [SAM](https://arxiv.org/abs/2308.10493)[ICDAR'2023]. 
 
 >* Zhuang Liu, Ye Yuan, Zhilong ji, Jingfeng Bai and Xiang Bai*
 
