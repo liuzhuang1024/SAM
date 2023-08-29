@@ -3,7 +3,7 @@
 
 This is the official pytorch implementation of [SAM](https://arxiv.org/abs/2308.10493)[ICDAR'2023]. 
 
->* Zhuang Liu, Ye Yuan, Zhilong ji, Jingfeng Bai and Xiang Bai*
+>*Zhuang Liu, Ye Yuan, Zhilong ji, Jingfeng Bai and Xiang Bai*
 
 ## Pipeline
 <p align="left"><img src="figures/model_arch.jpg" width="580"/></p>
