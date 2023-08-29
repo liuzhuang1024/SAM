@@ -59,7 +59,7 @@ class HMERDataset(Dataset):
             image = image.unsqueeze(0)
         words = self.words.encode(labels) + [0]
         words = torch.LongTensor(words)
-        return image, words
+        return image, words, name
     
     def gen_matrix(self, labels):
         (B, L), device = labels.shape, labels.device
@@ -108,7 +108,10 @@ class HMERDataset(Dataset):
             labels_masks[i][:l] = 1
         matrix = self.gen_matrix(labels)
         counting_labels = gen_counting_label(labels, self.params['counting_decoder']['out_channel'], True)
-        return images, image_masks, labels, labels_masks, matrix, counting_labels
+        if self.is_train:
+            return images, image_masks, labels, labels_masks, matrix, counting_labels
+        else:
+            return list(zip(*batch_images))[-1], images, image_masks, labels, labels_masks, matrix, counting_labels
 
 
 def get_crohme_dataset(params):

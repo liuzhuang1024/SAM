@@ -1,9 +1,9 @@
 # 实验名称
-experiment: "can-l2-context-word" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_ori_train_with_gpus1_bs8_lr1" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_gpus1_bs8_lr1" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_gpus1_bs8_lr1_ddp" # "ori_CAN_in_full_crohme"
+experiment: "can" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_ori_train_with_gpus1_bs8_lr1" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_gpus1_bs8_lr1" # "ori_CAN_with_counting_predicted_class_info_in_full_crohme_with_gpus1_bs8_lr1_ddp" # "ori_CAN_in_full_crohme"
 
 sim_loss:
   type: l2
-  use_flag: True
+  use_flag: False
 context_loss: False
 word_state_loss: False
 
@@ -17,16 +17,16 @@ counting_decoder:
 seed: 20211024
 
 # 训练参数
-epochs: 200
+epochs: 50
 batch_size: 8 # 8
 workers: 5 # 0
 train_parts: 1
 valid_parts: 1
-valid_start: 100 # 1000000000
+valid_start: 0 # 1000000000
 save_start: 0 # 220
 
 optimizer: Adadelta
-lr: 1 # 1
+lr: 0.01 # 1
 lr_decay: cosine
 step_ratio: 10
 step_decay: 5
@@ -98,6 +98,6 @@ max_step: 256
 optimizer_save: False
 finetune: True
 checkpoint_dir: 'checkpoints'
-checkpoint: ""
+checkpoint: "checkpoints/can-l2-context-word_2022-12-08-10-19_decoder-Decoder_v3/2014_can-l2-context-word_2022-12-08-10-19_decoder-Decoder_v3_WordRate-0.9037_ExpRate-0.5720_179.pth"
 log_dir: 'logs_v2'
 

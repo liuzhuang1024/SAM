@@ -7,7 +7,7 @@ import models
 from models.densenet import DenseNet
 
 from einops.layers.torch import Rearrange
-from traceback import print_exc
+import pickle
 
 class Model(nn.Module):
     def __init__(self, params={}):
@@ -47,7 +47,12 @@ class Model(nn.Module):
                 Rearrange("b h l->b l h"),
                 nn.ReLU()
             )
-
+        if self.params['sim_loss']['use_flag']:
+            self.sim = nn.Sequential(
+                nn.Linear(params['decoder']['input_size'], params['decoder']['input_size']),
+                nn.ReLU()
+            )
+            
     def forward(self, images, images_mask, labels, labels_mask, matrix=None, counting_labels=None, is_train=True):
         cnn_features = self.encoder(images)
 
@@ -55,23 +60,38 @@ class Model(nn.Module):
 
         context_loss, word_state_loss, word_sim_loss, counting_loss = 0, 0, 0, 0
         embedding, word_context_vec_list, word_out_state_list, _, counting_loss = embedding
-        if self.params['context_loss'] or self.params['word_state_loss'] and is_train:
-            if 'context_loss' in self.params and self.params['context_loss']:
-                word_context_vec_list = torch.stack(word_context_vec_list, 1)
-                context_embedding = self.cma_context(word_context_vec_list)
-                context_loss = self.cal_cam_loss_v2(context_embedding, labels, matrix)
-            if 'word_state_loss' in self.params and self.params['word_state_loss']:
-                word_out_state_list = torch.stack(word_out_state_list, 1)
-                word_state_embedding = self.cma_word(word_out_state_list)
-                word_state_loss = self.cal_cam_loss_v2(word_state_embedding, labels, matrix)
-                
+
+        # self.cal_cam_loss_v2(torch.stack(word_context_vec_list, 1), labels, matrix)
+        # self.cal_cam_loss_v2(torch.stack(word_out_state_list, 1), labels, matrix)
+        
+        # if (self.params['context_loss'] or self.params['word_state_loss']) and is_train or self.params['val']:
+        #     if 'context_loss' in self.params and self.params['context_loss']:
+        #         word_context_vec_list = torch.stack(word_context_vec_list, 1)
+        #         context_embedding = self.cma_context(word_context_vec_list)
+        #         context_loss = self.cal_cam_loss_v2(context_embedding, labels, matrix)
+        #     if 'word_state_loss' in self.params and self.params['word_state_loss']:
+        #         word_out_state_list = torch.stack(word_out_state_list, 1)
+        #         word_state_embedding = self.cma_word(word_out_state_list)
+        #         word_state_loss = self.cal_cam_loss_v2(word_state_embedding, labels, matrix)
+
+                # self.word_context_vec_list = torch.split(context_embedding, 1, dim=1)
+                # self.word_out_state_list = torch.split(word_state_embedding, 1, dim=1)
+            
+        # word_context_vec_list = torch.stack(word_context_vec_list, 1)
+        # context_embedding = self.cma_context(word_context_vec_list)
+        # context_loss = self.cal_cam_loss_v2(context_embedding, labels, matrix)
+        # word_out_state_list = torch.stack(word_out_state_list, 1)
+        # word_state_embedding = self.cma_word(word_out_state_list)
+        # word_state_loss = self.cal_cam_loss_v2(word_state_embedding, labels, matrix)
+
+
         word_loss = self.cross(word_probs.contiguous().view(-1, word_probs.shape[-1]), labels.view(-1))
         word_average_loss = (word_loss * labels_mask.view(-1)).sum() / (labels_mask.sum() + 1e-10) if self.use_label_mask else word_loss
 
         if 'sim_loss' in self.params and self.params['sim_loss']['use_flag']:
             word_sim_loss = self.cal_word_similarity(embedding)
 
-        return word_probs, (word_average_loss, word_sim_loss, context_loss, word_state_loss, counting_loss)
+        return word_probs, (word_average_loss, word_sim_loss, context_loss, word_state_loss, counting_loss, word_alphas)
 
 
     def cal_cam_loss_v2(self, word_embedding, labels, matrix):
@@ -89,7 +109,7 @@ class Model(nn.Module):
         return loss.sum() / B / (labels != 0).sum()
     
     def cal_word_similarity(self, word_embedding):
-
+        word_embedding = self.sim(word_embedding)
         num = word_embedding @ word_embedding.transpose(1,0)
 
         denom = torch.matmul(word_embedding.unsqueeze(1), word_embedding.unsqueeze(2)).squeeze(1) ** (0.5)

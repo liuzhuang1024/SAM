@@ -5,7 +5,7 @@ import math
 import torch
 import numpy as np
 from difflib import SequenceMatcher
-
+from torch import nn
 
 def load_config(yaml_path):
     try:
@@ -65,13 +65,13 @@ def save_checkpoint(model, optimizer, word_score, ExpRate_score, epoch, optimize
     return filename
 
 
-def load_checkpoint(model, optimizer, path):
+def load_checkpoint(model:nn.Module, optimizer, path):
     state = torch.load(path, map_location='cpu')
     if optimizer is not None and 'optimizer' in state:
         optimizer.load_state_dict(state['optimizer'])
     else:
         print(f'No optimizer in the pretrained model')
-    model.load_state_dict(state['model'])
+    model.load_state_dict(state['model'], strict=False)
 
 
 class Meter:

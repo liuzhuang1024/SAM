@@ -124,6 +124,14 @@ class Decoder_v1(nn.Module):
                 word_embedding = self.embedding(word)
                 word_probs[:, i] = word_prob
                 word_alphas[:, i] = word_alpha
+                
+                # word and context collect
+                word_context_vec_list.append(word_context_vec)
+                label_list.append(labels[:, i])
+                word_out_state_list.append(word_out_state)
+            self.word_context_vec_list = word_context_vec_list
+            self.word_out_state_list = word_out_state_list
+            
         return word_probs, word_alphas, (self.embedding.weight, word_context_vec_list, word_out_state_list, label_list, counting_loss)
 
     def init_hidden(self, features, feature_mask):
