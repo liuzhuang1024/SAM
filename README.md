@@ -16,6 +16,7 @@ python train.py --config config_v2.yaml
 
 
 ## Citation
+```
 @misc{liu2023semantic,
     title={Semantic Graph Representation Learning for Handwritten Mathematical Expression Recognition},
     author={Zhuang Liu and Ye Yuan and Zhilong Ji and Jingfeng Bai and Xiang Bai},
@@ -24,6 +25,7 @@ python train.py --config config_v2.yaml
     archivePrefix={arXiv},
     primaryClass={cs.CV}
 }
+```
 
 ## Recommendation
 
